@@ -10,6 +10,8 @@ using GenericPOSRestService.Common.ServiceCallClasses;
 using Newtonsoft.Json.Linq;
 using Nancy.Responses;
 using Newtonsoft.Json;
+using RestSharp;
+using System.Xml.Linq;
 
 namespace GenericPOSRestService.RESTListener
 {
@@ -24,9 +26,14 @@ namespace GenericPOSRestService.RESTListener
 
         private const string LogResponseSkipRequestString = "REST service call \"{0}\" => response: {2}\r\tCalculationTimeInMilliseconds: {3}";
 
-        //API URLs
-        private string orderUrl;
-        private string statusUrl;
+        // static values
+        public static string OrderUrl;
+        public static string StatusUrl;
+
+
+        //Connection String
+        public static string ConnectionString;
+        public static string TableName;
 
         public string LogName
         {
@@ -354,7 +361,7 @@ namespace GenericPOSRestService.RESTListener
             StatusPOSResponse response = new StatusPOSResponse();
             string responseStr = string.Empty;
             StatusResponse getResponse;
-            RestCalls restCalls = new RestCalls();
+            //RestCalls restCalls = new RestCalls();
 
             //check kiosk is valid
             if (string.IsNullOrWhiteSpace(kiosk))
@@ -366,8 +373,6 @@ namespace GenericPOSRestService.RESTListener
             {
                 // POS Calls - Get the status load the url path
                 LoadAPIUrls();
-
-                responseStr = restCalls.GetAsyncRequest(statusUrl + kiosk);
 
                 //Deserialise returned data into a JSon object to return
                 getResponse = JsonConvert.DeserializeObject<StatusResponse>(responseStr);
@@ -384,30 +389,43 @@ namespace GenericPOSRestService.RESTListener
             OrderCreatePOSResponse response = new OrderCreatePOSResponse();
             HttpStatusCode httpStatusCode = response.HttpStatusCode;
             Order order = response.OrderCreateResponse.Order;
-
             string responseStr = string.Empty;
-            RestCalls restCalls = new RestCalls();
 
             //TODO order time is invalid from test need to check if the kiosk 
             //does the same thing
             DateTime orderTime = DateTime.Now;
-            string orderTimeStr = orderTime.ToString("yyMMddHHmmss");
-            request.DOTOrder.OrderTime = orderTimeStr;
+            request.DOTOrder.OrderTime = orderTime.ToString("yyMMddHHmmss");
+
+            //copy the TableServiceNumber to the tableNo
+            if ((request.DOTOrder.Location == Location.EatIn) && (request.DOTOrder.TableServiceNumber != null))
+                request.DOTOrder.tableNo = Convert.ToInt32(request.DOTOrder.TableServiceNumber);
 
             string requestStr = JsonConvert.SerializeObject(request.DOTOrder);
 
-            // prefix and Postfix the JSON string with the DOTOrder and Order and closing tags
-            string requestOrderStr = "{\"DOTOrder\": {\"Order\": " + requestStr + " } } ";
 
-            //POST the JSON to the Server and get the response - load the url path
+            //Load the API settings to use
             LoadAPIUrls();
-            responseStr = restCalls.PostAsyncRequest(orderUrl, requestOrderStr);
+
+            //if (request.DOTOrder.FunctionNumber == FunctionNumber.PRE_CALCULATE)
+            //{
+                //get the basketID
+                CallStoredProcs procs = new CallStoredProcs(request, response);
+                procs.CheckBasketStoredProcs();
+
+
+           // }
+            if (request.DOTOrder.FunctionNumber == FunctionNumber.EXT_COMPLETE_ORDER)
+            {
+               
+            }
+
+            //responseStr = restCalls.PostAsyncRequest(orderUrl, requestOrderStr);
 
             //Deserialize the string to an Object
-            OrderCreateResponse jsonOrder = JsonConvert.DeserializeObject<OrderCreateResponse>(responseStr);
+            //OrderCreateResponse jsonOrder = JsonConvert.DeserializeObject<OrderCreateResponse>(responseStr);
 
             //populate Order with the result from the POS 
-            response.OrderCreateResponse = jsonOrder;
+            //response.OrderCreateResponse = jsonOrder;
 
 
             if (httpStatusCode == HttpStatusCode.Created)
@@ -442,12 +460,36 @@ namespace GenericPOSRestService.RESTListener
             try
             {
                 string filePath = Properties.Settings.Default.ApiSettingsConfigFileName;
-                System.Xml.Linq.XElement elements = System.Xml.Linq.XElement.Load(filePath);
-                System.Xml.Linq.XElement orderElement = elements.Element("OrderUrl");
-                System.Xml.Linq.XElement getStatusElement = elements.Element("GetStatusUrl");
+                XElement elements = XElement.Load(filePath);
 
-                orderUrl = orderElement.Value;
-                statusUrl = getStatusElement.Value;
+                //Order details 
+                XElement orderElement = elements.Element("OrderUrl");
+                //XElement getStatusElement = elements.Element("GetStatusUrl");
+
+                //Header details
+                XElement contentTypeElement = elements.Element("ContentType");
+                XElement acceptElement = elements.Element("Accept");
+                XElement cacheElement = elements.Element("Cache");
+                
+
+                // Database details
+                XElement connectionString = elements.Element("ConnectionString");
+                XElement tableName = elements.Element("TableName");
+
+
+                //Set the static values to use
+
+                //set the values from the XML file
+               // OrderUrl = orderElement.Value;
+                //StatusUrl = getStatusElement.Value;
+
+                //HeaderDetails
+             
+               
+
+                //Database Details
+                ConnectionString = connectionString.Value;
+                TableName = tableName.Value;
             }
             catch (Exception ex)
             {

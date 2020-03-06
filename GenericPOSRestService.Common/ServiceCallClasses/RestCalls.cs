@@ -7,68 +7,30 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http.Headers;
+using RestSharp;
 
 namespace GenericPOSRestService.Common.ServiceCallClasses
 {
     public class RestCalls
     {
-        /// <summary>
-        ///  A GET method 
-        /// </summary>
-        /// <param name="urlString"></param>
-        /// <returns></returns>
-        public string GetAsyncRequest(string urlString)
-        {
-            string resultStr = string.Empty;
-            HttpResponseMessage response;
-
-            try
-            {
-                HttpClient client = new HttpClient();
-                client.BaseAddress = new Uri(urlString);
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                response = client.GetAsync(urlString).Result;
-                resultStr = response.Content.ReadAsStringAsync().Result;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Error: {ex}");
-                Log.Error($"Error: {ex.InnerException}");
-            }
-
-            return resultStr;
-        }
-
-        /// <summary>
-        /// REST POST Json method
-        /// </summary>
-        /// <param name="fileName"></param>
-        /// <param name="url"></param>
-        public string PostAsyncRequest(string url, string data)
-        {
-            HttpResponseMessage response = null;
-            StringContent content = null;    
-            string contents = string.Empty;
-          
-            try
-            {
-               HttpClient httpClient = new HttpClient();
-                 
-               content = new StringContent(data, Encoding.UTF8, "application/json");
-               response = httpClient.PostAsync(url, content).Result;// storing the results of posts in response
-               contents = response.Content.ReadAsStringAsync().Result;
-               Log.Info(contents);
-               
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Error: {ex}");
-                Log.Error($"Error: {ex.InnerException}");
-            }
-
-            return contents;
-        }
-       
         
+
+        public IRestResponse PostCheckBasket(string payLoad)
+        {
+
+            var client = new RestClient("https://flyt-acrelec-integration.flyt-platform.com/checkBasket");
+            var request = new RestRequest(Method.POST);
+            request.AddHeader("Connection", "keep-alive");
+            request.AddHeader("Host", "flyt-acrelec-integration.flyt-platform.com");
+            request.AddHeader("Accept", "*/*");
+            request.AddHeader("Content-Type", "text/plain");
+            request.AddHeader("X-Flyt-API-Key", "hdgskIZRgBmyArKCtzkjkZIvaBjMkXVbWGvbq");
+            request.AddParameter(payLoad, ParameterType.RequestBody);
+
+            IRestResponse response = client.Execute(request);
+            return response;
+
+        }
+
     }
 }

@@ -18,6 +18,8 @@ namespace GenericPOSRestService.Common.ServiceCallClasses
         public string OrderTime { get; set; }
         public string EventTime { get; set; }
         public string Elog { get; set; }
+        public int tableNo { get; set; }
+        public string TableServiceNumber { get; set; }
 
         private List<Item> items = new List<Item>();
 

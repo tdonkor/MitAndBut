@@ -15,6 +15,7 @@ namespace GenericPOSRestService.Common.ServiceCallClasses
         public string POSStatus { get; set; }
         public string Receipt { get; set; }
         public string Elog { get; set; }
+        public int tableNo { get; set; }
 
         private string reason = "Success";
 
