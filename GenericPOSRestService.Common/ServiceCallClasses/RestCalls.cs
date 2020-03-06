@@ -47,7 +47,7 @@ namespace GenericPOSRestService.Common.ServiceCallClasses
         }
 
 
-        //public  IRestResponse Fullfillment(string payLoad)
+        //public IRestResponse Fullfillment(string payLoad, string orderId)
         //{
 
 

@@ -114,12 +114,14 @@ namespace GenericPOSRestService.RESTListener
                 /****  FULFILLMENT *******************************************************************
                 * 5a)  Get the Order API Response call 
                 * ******************************************************************************/
-                IRestResponse checkFullfilmentResp = restCalls.PostOrder(payLoad);
+                //get the orderID to include in the call
+
+               // IRestResponse checkFullfilmentResp = restCalls.(payLoad, orderId);
 
                 /********FULFILLMENT ****************************************************************
-                *  Update orderBasket with API Response  
+                * 5b) Update orderBasket with API Response  
                 * ******************************************************************************/
-                ExecuteOrderBasket_APIResponse_CollectionByCustomer(con, basketId, checkFullfilmentResp.ToString());
+               // ExecuteOrderBasket_APIResponse_CollectionByCustomer(con, basketId, checkFullfilmentResp.ToString());
             }
 
         }
