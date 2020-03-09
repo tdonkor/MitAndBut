@@ -26,10 +26,19 @@ namespace GenericPOSRestService.RESTListener
 
         private const string LogResponseSkipRequestString = "REST service call \"{0}\" => response: {2}\r\tCalculationTimeInMilliseconds: {3}";
 
-        // static values
-        public static string OrderUrl;
-        public static string StatusUrl;
+        
+        //HeaderDetails
+        public static string ContentType;
+     
+        // Security Key values
+        public static string FlytAPIKey1;
+        public static string FlytAPIKey2;
 
+        //APICalls
+        public static string CheckBasketUrl;
+        public static string OrderUrl;
+        public static string FullFillmentUrl1;
+        public static string FullFillmentUrl2;
 
         //Connection String
         public static string ConnectionString;
@@ -402,30 +411,29 @@ namespace GenericPOSRestService.RESTListener
 
             string requestStr = JsonConvert.SerializeObject(request.DOTOrder);
 
-
-            //Load the API settings to use
+            /****************************
+            * Load the API settings to use
+            * ****************************/
             LoadAPIUrls();
 
-            //if (request.DOTOrder.FunctionNumber == FunctionNumber.PRE_CALCULATE)
-            //{
+
+            /**************************************************************
+             * Functions
+             * ***********************************************************/
+            if (request.DOTOrder.FunctionNumber == FunctionNumber.PRE_CALCULATE)
+            {
                 //get the basketID
                 CallStoredProcs procs = new CallStoredProcs(request, response);
                 procs.CheckBasketStoredProcs();
 
 
-           // }
+            }
             if (request.DOTOrder.FunctionNumber == FunctionNumber.EXT_COMPLETE_ORDER)
             {
                
             }
 
-            //responseStr = restCalls.PostAsyncRequest(orderUrl, requestOrderStr);
-
-            //Deserialize the string to an Object
-            //OrderCreateResponse jsonOrder = JsonConvert.DeserializeObject<OrderCreateResponse>(responseStr);
-
-            //populate Order with the result from the POS 
-            //response.OrderCreateResponse = jsonOrder;
+         
 
 
             if (httpStatusCode == HttpStatusCode.Created)
@@ -462,34 +470,40 @@ namespace GenericPOSRestService.RESTListener
                 string filePath = Properties.Settings.Default.ApiSettingsConfigFileName;
                 XElement elements = XElement.Load(filePath);
 
-                //Order details 
-                XElement orderElement = elements.Element("OrderUrl");
-                //XElement getStatusElement = elements.Element("GetStatusUrl");
-
                 //Header details
                 XElement contentTypeElement = elements.Element("ContentType");
-                XElement acceptElement = elements.Element("Accept");
-                XElement cacheElement = elements.Element("Cache");
-                
+
+                //Key details
+                XElement flytAPIKey1Element = elements.Element("APIKey1");
+                XElement flytAPIKey2Element = elements.Element("APIKey2");
+
+                //API details
+                XElement checkBasketUrlElement = elements.Element("CheckBasketURL");
+                XElement orderUrlElement = elements.Element("OrderURL");
+                XElement fullFillmentUrlElement1 = elements.Element("FullFillmentURL1");
+                XElement fullFillmentUrlElement2 = elements.Element("FullFillmentURL2");
 
                 // Database details
-                XElement connectionString = elements.Element("ConnectionString");
-                XElement tableName = elements.Element("TableName");
+                XElement connectionStringElement = elements.Element("ConnectionString");
+                XElement tableNameElement = elements.Element("TableName");
 
-
-                //Set the static values to use
-
-                //set the values from the XML file
-               // OrderUrl = orderElement.Value;
-                //StatusUrl = getStatusElement.Value;
-
+                /******************************************************
+                 * Set the static values to use
+                 * ****************************************************/
                 //HeaderDetails
-             
-               
+                ContentType = contentTypeElement.Value;
+                FlytAPIKey1 = flytAPIKey1Element.Value;
+                FlytAPIKey2 = flytAPIKey2Element.Value;
+
+                //API Url Calls
+                CheckBasketUrl = checkBasketUrlElement.Value;
+                OrderUrl = orderUrlElement.Value;
+                FullFillmentUrl1 = fullFillmentUrlElement1.Value;
+                FullFillmentUrl2 = fullFillmentUrlElement2.Value;
 
                 //Database Details
-                ConnectionString = connectionString.Value;
-                TableName = tableName.Value;
+                ConnectionString = connectionStringElement.Value;
+                TableName = tableNameElement.Value;
             }
             catch (Exception ex)
             {

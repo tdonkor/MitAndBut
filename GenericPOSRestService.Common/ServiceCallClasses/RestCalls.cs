@@ -15,52 +15,43 @@ namespace GenericPOSRestService.Common.ServiceCallClasses
     {
         
 
-        public IRestResponse PostCheckBasket(string payLoad)
+        public IRestResponse PostCheck(string url, string key, string contentType, string payLoad)
         {
 
-            var client = new RestClient("https://flyt-acrelec-integration.flyt-platform.com/checkBasket");
+            var client = new RestClient(url);
             var request = new RestRequest(Method.POST);
-            request.AddHeader("Connection", "keep-alive");
-            request.AddHeader("Host", "flyt-acrelec-integration.flyt-platform.com");
-            request.AddHeader("Accept", "*/*");
-            request.AddHeader("Content-Type", "text/plain");
-            request.AddHeader("X-Flyt-API-Key", "hdgskIZRgBmyArKCtzkjkZIvaBjMkXVbWGvbq");
-            request.AddParameter("text/plain",payLoad, ParameterType.RequestBody);
+            request.AddHeader("Content-Type", contentType);
+            request.AddHeader("X-Flyt-API-Key", key);
+            request.AddParameter(contentType, payLoad, ParameterType.RequestBody);
 
             IRestResponse response = client.Execute(request);
             return response;
 
         }
 
-        public IRestResponse PostOrder(string payLoad)
+        //  public IRestResponse PostOrder(string payLoad)
+        public IRestResponse PostOrder(string url, string key, string contentType, string payLoad)
         {
-            var client = new RestClient("https://api.flypaythis.com/ordering/v3/order");
+            var client = new RestClient(url);
             var request = new RestRequest(Method.POST);
-            request.AddHeader("Connection", "keep-alive");
-            request.AddHeader("Host", "api.flypaythis.com");
-            request.AddHeader("Accept", "*/*");
+            request.AddHeader("Content-Type", contentType);
+            request.AddHeader("X-Flypay-API-Key", key);
+            request.AddParameter("text/plain", payLoad, ParameterType.RequestBody);
+            IRestResponse response = client.Execute(request);
+            return response;
+        }
+
+        //public IRestResponse Fullfillment(string payLoad, string orderId)
+        public IRestResponse Fullfillment(string payLoad, string orderId)
+        {
+
+            var client = new RestClient("https://api.flypaythis.com/ordering/v3/order/" + orderId + "/fulfillment-type/collection-by-customer");
+            var request = new RestRequest(Method.POST);
             request.AddHeader("Content-Type", "text/plain");
             request.AddHeader("X-Flypay-API-Key", "u7f2r48x6bzwyy09vwsii");
             request.AddParameter("text/plain", payLoad, ParameterType.RequestBody);
             IRestResponse response = client.Execute(request);
             return response;
         }
-
-
-        //public IRestResponse Fullfillment(string payLoad, string orderId)
-        //{
-
-
-        //    var client = new RestClient("https://api.flypaythis.com/ordering/v3/order/" + orderId + "/fulfillment-type/collection-by-customer");
-        //    var request = new RestRequest(Method.POST);
-        //    request.AddHeader("Connection", "keep-alive");
-        //    request.AddHeader("Host", "api.flypaythis.com");
-        //    request.AddHeader("Accept", "*/*");
-        //    request.AddHeader("Content-Type", "text/plain");
-        //    request.AddHeader("X-Flypay-API-Key", "u7f2r48x6bzwyy09vwsii");
-        //    request.AddParameter("text/plain", payLoad, ParameterType.RequestBody);
-        //    IRestResponse response = client.Execute(request);
-        //    return response;
-        //}
     }
 }

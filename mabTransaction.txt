@@ -1,0 +1,19 @@
+<Transaction Ver="1100" SIM="1100222" Kiosk="1" Day="161010" ID="2121" RefInt="022494" Lang="tr" PreOrder="0" Closed="0" StoreID="0000" BrandID="1" FunctionNumber="33">
+  <Stat EndStatus="11" POSStatus="1" POSDetail="0" POSDetail_txt="[1.15.0.1] ok while posting the transaction" POSTovStatus="1" POSTovDetail="0" PAYStatus="0" PAYDetail="1"></Stat>
+  <Timing T_InOut="161936" T_FirstItem="161943" T_StartPay="161955" T_EndPay="162003" T_POS="162018" T_EndPOS="161951" />
+  <Service Location="1" Table="5" />
+  <Amounts Tax="0" SubtotalIncludesVAT="1" SubTotal="469" Paid="469">
+    <Tender>
+      <TenderItem ID="-1" Type="0" Amount="469" Paid="0" />
+    </Tender>
+    <Service />
+    <VATS />
+  </Amounts>
+  <CVARS AsString="InOut=2¶Language=en¶OrderID=0¶POS_VER=1.15.0.14¶History=[{&quot;Timestamp&quot;:&quot;3\/4\/2020 9:36:12 PM&quot;,&quot;ID&quot;:&quot;36&quot;,&quot;Name&quot;:&quot;Breakfast&quot;},{&quot;Timestamp&quot;:&quot;3\/4\/2020 9:36:08 PM&quot;,&quot;ID&quot;:&quot;35&quot;,&quot;Name&quot;:&quot;Main Page&quot;}]¶PreOrder=0¶MarketingTags=¶PaymentStartTime=213622¶HideCancelButton=0¶TsTentCode=¶TableService=4¶TS_No=8¶TS_Name=Tent¶TS_Desc=Tent¶TS_Valid=1" />
+  <ReceiptText><![CDATA[]]></ReceiptText>
+  <Order>
+    <DOTElement Type="Single" ID="1000000890" RName="Hawaiian" Qty="1" Quantity="1" Promo="0" UUID="{304d63af-aea2-58fb-8189-21eb1517109a}" Price="469" Vis="0" Grp="-1" GroupType="" DefaultQuantity="0">
+      <InternalInfo PageID="36" CustomInfo="null" />
+    </DOTElement>
+  </Order>
+</Transaction>
