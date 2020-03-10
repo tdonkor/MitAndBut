@@ -19,7 +19,7 @@ namespace GenericPOSRestService.RESTListener
         OrderCreatePOSResponse response;
         int basketId = 0;
         string payLoad = string.Empty;
-        RestCalls restCalls;
+
 
         /// <summary>
         /// Get the order request and populate the response and return it after processing the request
@@ -30,7 +30,6 @@ namespace GenericPOSRestService.RESTListener
         {
             this.request = orderRequest;
             this.response = orderResponse;
-            restCalls = new RestCalls();
         }
 
         public CallStoredProcs() { }
@@ -81,7 +80,8 @@ namespace GenericPOSRestService.RESTListener
                 /**  *****CHECKBASKET ******************************************************
                  * 3a) Get the CheckBasket API Response call 
                  * ***************************************************************************/
-                IRestResponse checkBasketResp = restCalls.PostCheck(RESTNancyModule.CheckBasketUrl,
+                IRestResponse checkBasketResp = ApiPost(RESTNancyModule.CheckBasketUrl,
+                                                                  RESTNancyModule.FlytKeyType1,
                                                                   RESTNancyModule.FlytAPIKey1,
                                                                   RESTNancyModule.ContentType,
                                                                   payLoad);
@@ -103,7 +103,8 @@ namespace GenericPOSRestService.RESTListener
                 /****  ORDER *******************************************************************
                 * 4a)  Get the Order API Response call 
                 * ******************************************************************************/
-                IRestResponse checkOrderResp = restCalls.PostOrder(RESTNancyModule.OrderUrl,
+                IRestResponse checkOrderResp = ApiPost(RESTNancyModule.OrderUrl,
+                                                                  RESTNancyModule.FlytKeyType2,
                                                                   RESTNancyModule.FlytAPIKey2,
                                                                   RESTNancyModule.ContentType,
                                                                   payLoad);
@@ -113,12 +114,11 @@ namespace GenericPOSRestService.RESTListener
                  * 4b)   Insert the response from the Order api call into the OrderBasketAPIResponse 
                  ************************************************************************************/
                 // Update orderBasket with API Response              
-                ExecuteOrderBasket_APIResponse_Order(con, basketId, checkOrderResp.Content);
+                string orderId = ExecuteOrderBasket_APIResponse_Order(con, basketId, checkOrderResp.Content);
 
                 //get the orderId from the response
-
-                dynamic order = JsonConvert.DeserializeObject<dynamic>(checkOrderResp.Content);
-                string orderId = order.orderId;
+                //JsonConvert.DeserializeObject<dynamic>(checkOrderResp.Content);
+                //string orderId = order.orderId;
                 Log.Info($"Order Id:{orderId}");
 
                 response.OrderCreateResponse.Order.OrderID = orderId;
@@ -139,14 +139,21 @@ namespace GenericPOSRestService.RESTListener
 
                 /****  FULFILLMENT *******************************************************************
                 * 5a)  Get the Order API Response call 
+                *      create the Fullfillment URL to Post To
                 * ******************************************************************************/
+                string fullFillUrl = RESTNancyModule.OrderUrl + "/" + orderId + RESTNancyModule.FullFillmentUrl;
 
-                IRestResponse checkFullfilmentResp = restCalls.Fullfillment(payLoad, orderId);
+               // IRestResponse checkFullfilmentResp = restCalls.Fullfillment(payLoad, orderId);
+                IRestResponse checkFullfilmentResp = ApiPost(fullFillUrl,
+                                                             RESTNancyModule.FlytKeyType2,
+                                                             RESTNancyModule.FlytAPIKey2,
+                                                             RESTNancyModule.ContentType,
+                                                             payLoad);
 
                 /********FULFILLMENT ****************************************************************
                 * 5b) Update orderBasket with API Response  
                 * ******************************************************************************/
-               ExecuteOrderBasket_APIResponse_CollectionByCustomer(con, basketId, checkFullfilmentResp.Content);
+                ExecuteOrderBasket_APIResponse_CollectionByCustomer(con, basketId, checkFullfilmentResp.Content);
             }
 
             return response;
@@ -206,6 +213,7 @@ namespace GenericPOSRestService.RESTListener
             com.CommandText = "OrderBasketAdd";
             com.Parameters.Add("@kioskRefInt", SqlDbType.Int).Value = request.DOTOrder.RefInt;
             com.Parameters.Add("@kioskID", SqlDbType.Int).Value = request.DOTOrder.Kiosk;
+            com.Parameters.Add("@TableServiceURN", SqlDbType.Int).Value = request.DOTOrder.tableNo;
 
             using (IDataReader reader = com.ExecuteReader())
             {
@@ -341,7 +349,7 @@ namespace GenericPOSRestService.RESTListener
         /// <param name="con"></param>
         /// <param name="orderBasketID"></param>
         /// <param name="jsonResponse"></param>
-        private void ExecuteOrderBasket_APIResponse_Order(SqlConnection con, int orderBasketID, string jsonResponse)
+        private string ExecuteOrderBasket_APIResponse_Order(SqlConnection con, int orderBasketID, string jsonResponse)
         {
             // Create and configure a command object       
             SqlCommand com = con.CreateCommand();
@@ -351,6 +359,7 @@ namespace GenericPOSRestService.RESTListener
             com.Parameters.Add("@json", SqlDbType.VarChar).Value = jsonResponse;
             var result = com.ExecuteScalar();
             Log.Info("Execute OrderBasket_APIResponse_Order: OrderBasketID {0}: {1}", orderBasketID, result);
+            return result.ToString();
         }
 
         /// <summary>
@@ -403,10 +412,31 @@ namespace GenericPOSRestService.RESTListener
             com.Parameters.Add("@OrderBasketID", SqlDbType.Int).Value = orderBasketID;
             com.Parameters.Add("@json", SqlDbType.VarChar).Value = jsonResponse;
             var result = com.ExecuteScalar();
-            Console.WriteLine("Execute OrderBasket_APIResponse_CollectionByCustomer: OrderBasketID {0}: {1}", orderBasketID, result);
+            Log.Info("Execute OrderBasket_APIResponse_CollectionByCustomer: OrderBasketID {0}: {1}", orderBasketID, result);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="keyType"></param>
+        /// <param name="key"></param>
+        /// <param name="contentType"></param>
+        /// <param name="payLoad"></param>
+        /// <returns></returns>
+        public IRestResponse ApiPost(string url, string keyType, string key, string contentType, string payLoad)
+        {
 
+            var client = new RestClient(url);
+            var request = new RestRequest(Method.POST);
+            request.AddHeader("Content-Type", contentType);
+            request.AddHeader(keyType, key);
+            request.AddParameter(contentType, payLoad, ParameterType.RequestBody);
+
+            IRestResponse response = client.Execute(request);
+            return response;
+
+        }
 
     }
 }

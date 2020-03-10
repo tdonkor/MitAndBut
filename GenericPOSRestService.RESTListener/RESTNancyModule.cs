@@ -29,7 +29,11 @@ namespace GenericPOSRestService.RESTListener
         
         //HeaderDetails
         public static string ContentType;
-     
+
+        // Security Key Types
+        public static string FlytKeyType1;
+        public static string FlytKeyType2;
+
         // Security Key values
         public static string FlytAPIKey1;
         public static string FlytAPIKey2;
@@ -37,8 +41,8 @@ namespace GenericPOSRestService.RESTListener
         //APICalls
         public static string CheckBasketUrl;
         public static string OrderUrl;
-        public static string FullFillmentUrl1;
-        public static string FullFillmentUrl2;
+        public static string FullFillmentUrl;
+
 
         //Connection String
         public static string ConnectionString;
@@ -402,8 +406,8 @@ namespace GenericPOSRestService.RESTListener
 
             //TODO order time is invalid from test need to check if the kiosk 
             //does the same thing
-            DateTime orderTime = DateTime.Now;
-            request.DOTOrder.OrderTime = orderTime.ToString("yyMMddHHmmss");
+            //DateTime orderTime = DateTime.Now;
+            //request.DOTOrder.OrderTime = orderTime.ToString("yyMMddHHmmss");
 
             //copy the TableServiceNumber to the tableNo
             if ((request.DOTOrder.Location == Location.EatIn) && (request.DOTOrder.TableServiceNumber != null))
@@ -424,7 +428,7 @@ namespace GenericPOSRestService.RESTListener
             {
                 //get the basketID
                 CallStoredProcs procs = new CallStoredProcs(request, response);
-                procs.CheckBasketStoredProcs();
+                response = procs.CheckBasketStoredProcs();
 
 
             }
@@ -473,6 +477,10 @@ namespace GenericPOSRestService.RESTListener
                 //Header details
                 XElement contentTypeElement = elements.Element("ContentType");
 
+                //Key types
+                XElement flytKeyTypeElement1 = elements.Element("KeyType1");
+                XElement flytKeyTypeElement2 = elements.Element("KeyType2");
+
                 //Key details
                 XElement flytAPIKey1Element = elements.Element("APIKey1");
                 XElement flytAPIKey2Element = elements.Element("APIKey2");
@@ -480,8 +488,8 @@ namespace GenericPOSRestService.RESTListener
                 //API details
                 XElement checkBasketUrlElement = elements.Element("CheckBasketURL");
                 XElement orderUrlElement = elements.Element("OrderURL");
-                XElement fullFillmentUrlElement1 = elements.Element("FullFillmentURL1");
-                XElement fullFillmentUrlElement2 = elements.Element("FullFillmentURL2");
+                XElement fullFillmentUrlElement = elements.Element("FullFillmentURL");
+
 
                 // Database details
                 XElement connectionStringElement = elements.Element("ConnectionString");
@@ -494,12 +502,14 @@ namespace GenericPOSRestService.RESTListener
                 ContentType = contentTypeElement.Value;
                 FlytAPIKey1 = flytAPIKey1Element.Value;
                 FlytAPIKey2 = flytAPIKey2Element.Value;
+                FlytKeyType1 = flytKeyTypeElement1.Value;
+                FlytKeyType2 = flytKeyTypeElement2.Value;
 
                 //API Url Calls
                 CheckBasketUrl = checkBasketUrlElement.Value;
                 OrderUrl = orderUrlElement.Value;
-                FullFillmentUrl1 = fullFillmentUrlElement1.Value;
-                FullFillmentUrl2 = fullFillmentUrlElement2.Value;
+                FullFillmentUrl = fullFillmentUrlElement.Value;
+
 
                 //Database Details
                 ConnectionString = connectionStringElement.Value;
