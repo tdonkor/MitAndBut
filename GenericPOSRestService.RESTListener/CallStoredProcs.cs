@@ -19,6 +19,7 @@ namespace GenericPOSRestService.RESTListener
         OrderCreatePOSResponse response;
         int basketId = 0;
         string payLoad = string.Empty;
+        string reason = string.Empty;
 
 
         /// <summary>
@@ -54,14 +55,34 @@ namespace GenericPOSRestService.RESTListener
 
                 if (basketId < 1)
                 {
-                    Log.Error("Order Basket Add Failed ");
+                    Log.Error("\nOrder Basket Add Failed ");
                     return null; 
                 }
-                Log.Info($"BasketId = {basketId}");
 
+                /******************************************************************
+                 * Start to populate response with transaction items
+                 * ***************************************************************/
+        
                 //set response Kiosk and refInt
                 response.OrderCreateResponse.Order.Kiosk = request.DOTOrder.Kiosk;
                 response.OrderCreateResponse.Order.RefInt = request.DOTOrder.RefInt;
+
+                //check Kiosk is valid 
+                if (string.IsNullOrEmpty(response.OrderCreateResponse.Order.Kiosk))
+                {
+                    reason += "\nKiosk Value Null or Empty.";
+                    response.OrderCreateResponse.Order.Reason = reason;
+                    response.SetPOSError(Errors.KioskNotSpecified);
+                }
+
+                //check Refint is valid 
+                if (string.IsNullOrEmpty(response.OrderCreateResponse.Order.RefInt))
+                {
+                    reason += "\nRefint Value Null or Empty.";
+                    response.OrderCreateResponse.Order.Reason = reason;
+                    response.SetPOSError(Errors.RefIntNotSpecified);
+                }
+
 
                 /*****  ADDITEMS **************************************************************
                 * 2) Call the OrderBasketAddItem stored proc to get the parentId for all items
@@ -112,23 +133,27 @@ namespace GenericPOSRestService.RESTListener
 
                 /****  ORDER *************************************************************************
                  * 4b)   Insert the response from the Order api call into the OrderBasketAPIResponse 
-                 ************************************************************************************/
-                // Update orderBasket with API Response              
+                 * Update orderBasket with API Response   and get the Id
+                ************************************************************************************/
                 string orderId = ExecuteOrderBasket_APIResponse_Order(con, basketId, checkOrderResp.Content);
 
-                //get the orderId from the response
-                //JsonConvert.DeserializeObject<dynamic>(checkOrderResp.Content);
-                //string orderId = order.orderId;
                 Log.Info($"Order Id:{orderId}");
+                /******************************************************************
+                * Continue to populate response with transaction items
+                * ***************************************************************/
 
                 response.OrderCreateResponse.Order.OrderID = orderId;
+                response.OrderCreateResponse.Order.Totals.AmountDue = request.DOTOrder.OrderAmount;
 
                 //check orderId is valid need to use this in FulFillment call if it is
                 if (string.IsNullOrEmpty(response.OrderCreateResponse.Order.OrderID))
                 {
-                    response.OrderCreateResponse.Order.Reason = "OrderId Null or Empty";
+                    reason += "\nOrderId Null or Empty";
+                    response.OrderCreateResponse.Order.Reason = reason;
                     response.SetPOSError(Errors.OrderIDNotSpecified);
                 }
+
+            
 
                 /*****  FULFILLMENT  **************************************************************************
                  *  5) Execute the store proc OrderBasket_API_CollectionByCustomer this will
@@ -192,7 +217,6 @@ namespace GenericPOSRestService.RESTListener
                     for (int j = 0; j < parentItem.Items.Count; j++)
                     {
                         Item childItem = parentItem.Items[j];
-
                         ProcessItem(con, childItem, basketID, itemID);
                     }
                 }
@@ -223,7 +247,7 @@ namespace GenericPOSRestService.RESTListener
                     orderBasketID = result;
                 }
             }
-            Log.Info("Execute OrderBasketAdd - {0}", orderBasketID);
+            Log.Info("Execute OrderBasketAdd - BasketId: {0}", orderBasketID);
 
             return orderBasketID;
         }
@@ -282,11 +306,11 @@ namespace GenericPOSRestService.RESTListener
                     var result = (string)reader[0];
                     if (result == "-1" || result == "0")
                     {
-                        Log.Error("\nExecute OrderBasket_API_Checkbasket - OrderBasketID = {0}: {1}\n", orderBasketID, result);
+                        Log.Error("\nExecute OrderBasket_API_Checkbasket - OrderBasketID = {0}: \nResult: {1}", orderBasketID, result);
                     }
                     else {
                         jsonPayload = result;
-                        Log.Info("\nExecute OrderBasket_API_Checkbasket - OrderBasketID = {0}: {1}\n", orderBasketID, jsonPayload);
+                        Log.Info("\nExecute OrderBasket_API_Checkbasket - OrderBasketID = {0}: \nPayload: {1}", orderBasketID, jsonPayload);
                     }
                 }
             }
@@ -308,7 +332,7 @@ namespace GenericPOSRestService.RESTListener
             com.Parameters.Add("@OrderBasketID", SqlDbType.Int).Value = orderBasketID;
             com.Parameters.Add("@json", SqlDbType.VarChar).Value = jsonResponse;
             var result = com.ExecuteScalar();
-            Log.Info("Execute OrderBasket_APIResponse_Checkbasket: OrderBasketID {0}: {1}", orderBasketID, result);
+            Log.Info("Execute OrderBasket_APIResponse_Checkbasket: OrderBasketID {0}: \nResult: {1}", orderBasketID, result);
         }
 
     
@@ -332,11 +356,11 @@ namespace GenericPOSRestService.RESTListener
                     var result = (string)reader[0];
                     if (result == "-1" || result == "0")
                     {
-                        Log.Error("\nExecute OrderBasket_API_Order - OrderBasketID = {0}: {1}\n", orderBasketID, result);
+                        Log.Error("\nExecute OrderBasket_API_Order - OrderBasketID = {0}: \nResult: {1}", orderBasketID, result);
                     } else
                     {
                         jsonPayload = result;
-                        Log.Info("\nExecute OrderBasket_API_Order - OrderBasketID = {0}: {1}\n", orderBasketID, jsonPayload);
+                        Log.Info("\nExecute OrderBasket_API_Order - OrderBasketID = {0}: \nPayload: {1}", orderBasketID, jsonPayload);
                     }
                 }
             }
@@ -358,7 +382,7 @@ namespace GenericPOSRestService.RESTListener
             com.Parameters.Add("@OrderBasketID", SqlDbType.Int).Value = orderBasketID;
             com.Parameters.Add("@json", SqlDbType.VarChar).Value = jsonResponse;
             var result = com.ExecuteScalar();
-            Log.Info("Execute OrderBasket_APIResponse_Order: OrderBasketID {0}: {1}", orderBasketID, result);
+            Log.Info("Execute OrderBasket_APIResponse_Order: OrderBasketID {0}: \nResult: {1}", orderBasketID, result);
             return result.ToString();
         }
 
@@ -385,12 +409,12 @@ namespace GenericPOSRestService.RESTListener
 
                     if (result == "-1" || result == "0")
                     {
-                        Log.Error("\nExecute OrderBasket_API_CollectionByCustomer - OrderBasketID = {0}: {1}\n", orderBasketID, result);
+                        Log.Error("\nExecute OrderBasket_API_CollectionByCustomer - OrderBasketID = {0}: \nResult: {1}", orderBasketID, result);
                     }
                     else
                     {
                         jsonPayload = result;
-                        Log.Info("\nExecute OrderBasket_API_CollectionByCustomer - OrderBasketID = {0}: {1}\n", orderBasketID, jsonPayload);
+                        Log.Info("\nExecute OrderBasket_API_CollectionByCustomer - OrderBasketID = {0}: \nPayload: {1}", orderBasketID, jsonPayload);
                     }
                 }
             }
@@ -412,7 +436,7 @@ namespace GenericPOSRestService.RESTListener
             com.Parameters.Add("@OrderBasketID", SqlDbType.Int).Value = orderBasketID;
             com.Parameters.Add("@json", SqlDbType.VarChar).Value = jsonResponse;
             var result = com.ExecuteScalar();
-            Log.Info("Execute OrderBasket_APIResponse_CollectionByCustomer: OrderBasketID {0}: {1}", orderBasketID, result);
+            Log.Info("Execute OrderBasket_APIResponse_CollectionByCustomer: OrderBasketID {0}: \nResult: {1}", orderBasketID, result);
         }
 
         /// <summary>

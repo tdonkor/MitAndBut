@@ -404,11 +404,6 @@ namespace GenericPOSRestService.RESTListener
             Order order = response.OrderCreateResponse.Order;
             string responseStr = string.Empty;
 
-            //TODO order time is invalid from test need to check if the kiosk 
-            //does the same thing
-            //DateTime orderTime = DateTime.Now;
-            //request.DOTOrder.OrderTime = orderTime.ToString("yyMMddHHmmss");
-
             //copy the TableServiceNumber to the tableNo
             if ((request.DOTOrder.Location == Location.EatIn) && (request.DOTOrder.TableServiceNumber != null))
                 request.DOTOrder.tableNo = Convert.ToInt32(request.DOTOrder.TableServiceNumber);
@@ -434,10 +429,17 @@ namespace GenericPOSRestService.RESTListener
             }
             if (request.DOTOrder.FunctionNumber == FunctionNumber.EXT_COMPLETE_ORDER)
             {
-               
-            }
+                response.OrderCreateResponse.Order.Kiosk = request.DOTOrder.Kiosk;
+                response.OrderCreateResponse.Order.RefInt = request.DOTOrder.RefInt;
+                response.OrderCreateResponse.Order.OrderID = request.DOTOrder.OrderID;
+                response.OrderCreateResponse.Order.Totals.AmountPaid = Convert.ToInt64(request.DOTOrder.PaidAmount);
 
-         
+            }
+            //copy to Order Table Number
+            if ((request.DOTOrder.Location == Location.EatIn) && (request.DOTOrder.TableServiceNumber != null))
+            {
+                response.OrderCreateResponse.Order.tableNo = Convert.ToInt32(request.DOTOrder.TableServiceNumber);
+            }
 
 
             if (httpStatusCode == HttpStatusCode.Created)
