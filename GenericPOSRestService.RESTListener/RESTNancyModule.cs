@@ -421,7 +421,7 @@ namespace GenericPOSRestService.RESTListener
              * ***********************************************************/
             if (request.DOTOrder.FunctionNumber == FunctionNumber.PRE_CALCULATE)
             {
-                //get the basketID
+                //Do CheckBasket
                 CallStoredProcs procs = new CallStoredProcs(request, response);
                 response = procs.CheckBasketStoredProcs();
 
@@ -433,6 +433,11 @@ namespace GenericPOSRestService.RESTListener
                 response.OrderCreateResponse.Order.RefInt = request.DOTOrder.RefInt;
                 response.OrderCreateResponse.Order.OrderID = request.DOTOrder.OrderID;
                 response.OrderCreateResponse.Order.Totals.AmountPaid = Convert.ToInt64(request.DOTOrder.PaidAmount);
+
+                //TODO get the Order number and the tax from the database.
+                //response.OrderCreateResponse.Order.OrderPOSNumber
+                //response.OrderCreateResponse.Order.Totals.TaxItems.
+
 
             }
             //copy to Order Table Number

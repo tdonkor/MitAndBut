@@ -73,6 +73,7 @@ namespace GenericPOSRestService.RESTListener
                     reason += "\nKiosk Value Null or Empty.";
                     response.OrderCreateResponse.Order.Reason = reason;
                     response.SetPOSError(Errors.KioskNotSpecified);
+                    return null;
                 }
 
                 //check Refint is valid 
@@ -81,6 +82,7 @@ namespace GenericPOSRestService.RESTListener
                     reason += "\nRefint Value Null or Empty.";
                     response.OrderCreateResponse.Order.Reason = reason;
                     response.SetPOSError(Errors.RefIntNotSpecified);
+                    return null;
                 }
 
 
@@ -112,73 +114,96 @@ namespace GenericPOSRestService.RESTListener
                 * Insert the response of the OrderBasket_API_CheckBasket Store Proc 
                 * 
                 * ************************************************************************************/
-                ExecuteOrderBasket_APIResponse_Checkbasket(con, basketId, checkBasketResp.Content);
-
-                /****  ORDER ***************************************************************************
-                 * 4) Execute the store proc Generate payload for Order API Call
-                 * 
-                 * ******************************************************************************/
-                 payLoad = string.Empty;
-                 payLoad = ExecuteOrderBasket_API_Order(con, basketId);
-
-                /****  ORDER *******************************************************************
-                * 4a)  Get the Order API Response call 
-                * ******************************************************************************/
-                IRestResponse checkOrderResp = ApiPost(RESTNancyModule.OrderUrl,
-                                                                  RESTNancyModule.FlytKeyType2,
-                                                                  RESTNancyModule.FlytAPIKey2,
-                                                                  RESTNancyModule.ContentType,
-                                                                  payLoad);
-
-
-                /****  ORDER *************************************************************************
-                 * 4b)   Insert the response from the Order api call into the OrderBasketAPIResponse 
-                 * Update orderBasket with API Response   and get the Id
-                ************************************************************************************/
-                string orderId = ExecuteOrderBasket_APIResponse_Order(con, basketId, checkOrderResp.Content);
-
-                Log.Info($"Order Id:{orderId}");
-                /******************************************************************
-                * Continue to populate response with transaction items
-                * ***************************************************************/
-
-                response.OrderCreateResponse.Order.OrderID = orderId;
-                response.OrderCreateResponse.Order.Totals.AmountDue = request.DOTOrder.OrderAmount;
-
-                //check orderId is valid need to use this in FulFillment call if it is
-                if (string.IsNullOrEmpty(response.OrderCreateResponse.Order.OrderID))
+                if (checkBasketResp.IsSuccessful)
                 {
-                    reason += "\nOrderId Null or Empty";
-                    response.OrderCreateResponse.Order.Reason = reason;
-                    response.SetPOSError(Errors.OrderIDNotSpecified);
+                    ExecuteOrderBasket_APIResponse_Checkbasket(con, basketId, checkBasketResp.Content);
+
+                    /****  ORDER ***************************************************************************
+                     * 4) Execute the store proc Generate payload for Order API Call
+                     * 
+                     * ******************************************************************************/
+                    payLoad = string.Empty;
+                    payLoad = ExecuteOrderBasket_API_Order(con, basketId);
+
+                    /****  ORDER *******************************************************************
+                    * 4a)  Get the Order API Response call 
+                    * ******************************************************************************/
+                    IRestResponse checkOrderResp = ApiPost(RESTNancyModule.OrderUrl,
+                                                                      RESTNancyModule.FlytKeyType2,
+                                                                      RESTNancyModule.FlytAPIKey2,
+                                                                      RESTNancyModule.ContentType,
+                                                                      payLoad);
+
+                    if(checkOrderResp.IsSuccessful)
+                    {
+                        /****  ORDER *************************************************************************
+                        * 4b)   Insert the response from the Order api call into the OrderBasketAPIResponse 
+                        * Update orderBasket with API Response   and get the Id
+                        ************************************************************************************/
+                        string orderId = ExecuteOrderBasket_APIResponse_Order(con, basketId, checkOrderResp.Content);
+
+                        Log.Info($"Order Id:{orderId}");
+                        /******************************************************************
+                        * Continue to populate response with transaction items
+                        * ***************************************************************/
+
+                        response.OrderCreateResponse.Order.OrderID = orderId;
+                        response.OrderCreateResponse.Order.Totals.AmountDue = request.DOTOrder.OrderAmount;
+
+                        //check orderId is valid need to use this in FulFillment call if it is
+                        if (string.IsNullOrEmpty(response.OrderCreateResponse.Order.OrderID))
+                        {
+                            reason += "\nOrderId Null or Empty";
+                            response.OrderCreateResponse.Order.Reason = reason;
+                            response.SetPOSError(Errors.OrderIDNotSpecified);
+                        }
+
+
+                        /*****  FULFILLMENT  **************************************************************************
+                         *  5) Execute the store proc OrderBasket_API_CollectionByCustomer this will
+                         * Generate  the payload for Collection By Customer API Call
+                         * *****************************************************************************/
+                        payLoad = string.Empty;
+                        payLoad = ExecuteOrderBasket_API_CollectionByCustomer(con, basketId);
+
+                        /****  FULFILLMENT *******************************************************************
+                        * 5a)  Get the Order API Response call 
+                        *      create the Fullfillment URL to Post To
+                        * ******************************************************************************/
+                        string fullFillUrl = RESTNancyModule.OrderUrl + "/" + orderId + RESTNancyModule.FullFillmentUrl;
+
+                        // IRestResponse checkFullfilmentResp = restCalls.Fullfillment(payLoad, orderId);
+                        IRestResponse checkFullfilmentResp = ApiPost(fullFillUrl,
+                                                                     RESTNancyModule.FlytKeyType2,
+                                                                     RESTNancyModule.FlytAPIKey2,
+                                                                     RESTNancyModule.ContentType,
+                                                                     payLoad);
+
+                        if (checkFullfilmentResp.IsSuccessful)
+                        {
+
+                            /********FULFILLMENT ****************************************************************
+                            * 5b) Update orderBasket with API Response  
+                            * ******************************************************************************/
+                            ExecuteOrderBasket_APIResponse_CollectionByCustomer(con, basketId, checkFullfilmentResp.Content);
+                        }
+                        else
+                        {
+                            Log.Error("Fullfillment API POST error");
+                            return null;
+                        }
+                    }
+                    else
+                    {
+                        Log.Error("Order API POST error");
+                        return null;
+                    }
                 }
-
-            
-
-                /*****  FULFILLMENT  **************************************************************************
-                 *  5) Execute the store proc OrderBasket_API_CollectionByCustomer this will
-                 * Generate  the payload for Collection By Customer API Call
-                 * *****************************************************************************/
-                payLoad = string.Empty;
-                payLoad = ExecuteOrderBasket_API_CollectionByCustomer(con, basketId);
-
-                /****  FULFILLMENT *******************************************************************
-                * 5a)  Get the Order API Response call 
-                *      create the Fullfillment URL to Post To
-                * ******************************************************************************/
-                string fullFillUrl = RESTNancyModule.OrderUrl + "/" + orderId + RESTNancyModule.FullFillmentUrl;
-
-               // IRestResponse checkFullfilmentResp = restCalls.Fullfillment(payLoad, orderId);
-                IRestResponse checkFullfilmentResp = ApiPost(fullFillUrl,
-                                                             RESTNancyModule.FlytKeyType2,
-                                                             RESTNancyModule.FlytAPIKey2,
-                                                             RESTNancyModule.ContentType,
-                                                             payLoad);
-
-                /********FULFILLMENT ****************************************************************
-                * 5b) Update orderBasket with API Response  
-                * ******************************************************************************/
-                ExecuteOrderBasket_APIResponse_CollectionByCustomer(con, basketId, checkFullfilmentResp.Content);
+                else
+                {
+                    Log.Error("CheckBasket API POST error");
+                    return null;
+                }
             }
 
             return response;
