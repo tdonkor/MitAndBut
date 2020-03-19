@@ -62,7 +62,7 @@ namespace GenericPOSRestService.RESTListener
                 /******************************************************************
                  * Start to populate response with transaction items
                  * ***************************************************************/
-        
+
                 //set response Kiosk and refInt
                 response.OrderCreateResponse.Order.Kiosk = request.DOTOrder.Kiosk;
                 response.OrderCreateResponse.Order.RefInt = request.DOTOrder.RefInt;
@@ -134,7 +134,7 @@ namespace GenericPOSRestService.RESTListener
                                                                       RESTNancyModule.ContentType,
                                                                       payLoad);
 
-                    if(checkOrderResp.IsSuccessful)
+                    if (checkOrderResp.IsSuccessful)
                     {
                         /****  ORDER *************************************************************************
                         * 4b)   Insert the response from the Order api call into the OrderBasketAPIResponse 
@@ -186,6 +186,8 @@ namespace GenericPOSRestService.RESTListener
                             * 5b) Update orderBasket with API Response  
                             * ******************************************************************************/
                             ExecuteOrderBasket_APIResponse_CollectionByCustomer(con, basketId, checkFullfilmentResp.Content);
+
+                            
                         }
                         else
                         {

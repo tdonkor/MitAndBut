@@ -12,6 +12,7 @@ using Nancy.Responses;
 using Newtonsoft.Json;
 using RestSharp;
 using System.Xml.Linq;
+using System.Data.SqlClient;
 
 namespace GenericPOSRestService.RESTListener
 {
@@ -374,7 +375,7 @@ namespace GenericPOSRestService.RESTListener
             StatusPOSResponse response = new StatusPOSResponse();
             string responseStr = string.Empty;
             StatusResponse getResponse;
-            //RestCalls restCalls = new RestCalls();
+           
 
             //check kiosk is valid
             if (string.IsNullOrWhiteSpace(kiosk))
@@ -403,6 +404,8 @@ namespace GenericPOSRestService.RESTListener
             HttpStatusCode httpStatusCode = response.HttpStatusCode;
             Order order = response.OrderCreateResponse.Order;
             string responseStr = string.Empty;
+            string orderNum = string.Empty;
+            int tax = 0;
 
             //copy the TableServiceNumber to the tableNo
             if ((request.DOTOrder.Location == Location.EatIn) && (request.DOTOrder.TableServiceNumber != null))
@@ -425,21 +428,52 @@ namespace GenericPOSRestService.RESTListener
                 CallStoredProcs procs = new CallStoredProcs(request, response);
                 response = procs.CheckBasketStoredProcs();
 
+                if (response == null)
+                {
+                    Log.Error("Error in CheckBasket");
+                    return response;
+                }
+
 
             }
             if (request.DOTOrder.FunctionNumber == FunctionNumber.EXT_COMPLETE_ORDER)
             {
+               
+
                 response.OrderCreateResponse.Order.Kiosk = request.DOTOrder.Kiosk;
                 response.OrderCreateResponse.Order.RefInt = request.DOTOrder.RefInt;
                 response.OrderCreateResponse.Order.OrderID = request.DOTOrder.OrderID;
                 response.OrderCreateResponse.Order.Totals.AmountPaid = Convert.ToInt64(request.DOTOrder.PaidAmount);
 
                 //TODO get the Order number and the tax from the database.
-                //response.OrderCreateResponse.Order.OrderPOSNumber
-                //response.OrderCreateResponse.Order.Totals.TaxItems.
+                using (SqlConnection con = new SqlConnection())
+                {
+                    con.ConnectionString = ConnectionString;
+                    con.Open();
+                    SqlCommand comm = new SqlCommand($"SELECT APIPosOrderID, APItax from {TableName } where KioskRefInt = {Convert.ToInt32(request.DOTOrder.RefInt)}", con);
+                    using (SqlDataReader reader = comm.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            orderNum = Convert.ToString(reader.GetInt32(0));
+                            tax = reader.GetInt32(1);
+                        }
+                    }
 
+                    if (string.IsNullOrEmpty(orderNum))
+                    {
+                        Log.Error($"No Order Number returned from the database for Transaction {request.DOTOrder.RefInt}");
+                    }
+                    else
+                    {
+                        Log.Info($"Order number = {orderNum} for Transaction {request.DOTOrder.RefInt}");
+                    }
+                }
 
+                response.OrderCreateResponse.Order.OrderPOSNumber = Convert.ToInt32(orderNum);
+               
             }
+
             //copy to Order Table Number
             if ((request.DOTOrder.Location == Location.EatIn) && (request.DOTOrder.TableServiceNumber != null))
             {
