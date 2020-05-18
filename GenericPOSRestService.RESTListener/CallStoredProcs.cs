@@ -36,7 +36,7 @@ namespace GenericPOSRestService.RESTListener
         public CallStoredProcs() { }
 
         /// <summary>
-        /// 
+        /// Call the checkBasket Stored procedure
         /// </summary>
         public OrderCreatePOSResponse CheckBasketStoredProcs()
         {
@@ -214,7 +214,7 @@ namespace GenericPOSRestService.RESTListener
 
 
         /// <summary>
-        /// 
+        /// Process the item
         /// </summary>
         /// <param name="con"></param>
         /// <param name="parentItem"></param>
@@ -251,7 +251,7 @@ namespace GenericPOSRestService.RESTListener
         }
 
         /// <summary>
-        /// 
+        /// Add the item to the basket
         /// </summary>
         /// <param name="con"></param>
         /// <returns></returns>
@@ -477,7 +477,7 @@ namespace GenericPOSRestService.RESTListener
         /// <returns></returns>
         public IRestResponse ApiPost(string url, string keyType, string key, string contentType, string payLoad)
         {
-
+            Log.Info($"key {key} : keyType: {keyType}");
             var client = new RestClient(url);
             var request = new RestRequest(Method.POST);
             request.AddHeader("Content-Type", contentType);

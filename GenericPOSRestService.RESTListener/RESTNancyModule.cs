@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using RestSharp;
 using System.Xml.Linq;
 using System.Data.SqlClient;
+using System.Data;
 
 namespace GenericPOSRestService.RESTListener
 {
@@ -406,6 +407,7 @@ namespace GenericPOSRestService.RESTListener
             string responseStr = string.Empty;
             string orderNum = string.Empty;
             int tax = 0;
+            int basketId = 0;
 
             //copy the TableServiceNumber to the tableNo
             if ((request.DOTOrder.Location == Location.EatIn) && (request.DOTOrder.TableServiceNumber != null))
@@ -425,6 +427,7 @@ namespace GenericPOSRestService.RESTListener
             if (request.DOTOrder.FunctionNumber == FunctionNumber.PRE_CALCULATE)
             {
                 //Do CheckBasket
+            
                 CallStoredProcs procs = new CallStoredProcs(request, response);
                 response = procs.CheckBasketStoredProcs();
 
@@ -436,9 +439,22 @@ namespace GenericPOSRestService.RESTListener
 
 
             }
-            if (request.DOTOrder.FunctionNumber == FunctionNumber.EXT_COMPLETE_ORDER)
+
+            if (request.DOTOrder.FunctionNumber == FunctionNumber.EXT_OPEN_ORDER)
             {
-               
+                CallStoredProcs procs = new CallStoredProcs(request, response);
+                //response = procs.();
+
+                if (response == null)
+                {
+                    Log.Error("Error in CheckBasket");
+                    return response;
+                }
+            }
+
+
+                if (request.DOTOrder.FunctionNumber == FunctionNumber.EXT_COMPLETE_ORDER)
+            {
 
                 response.OrderCreateResponse.Order.Kiosk = request.DOTOrder.Kiosk;
                 response.OrderCreateResponse.Order.RefInt = request.DOTOrder.RefInt;
@@ -450,13 +466,14 @@ namespace GenericPOSRestService.RESTListener
                 {
                     con.ConnectionString = ConnectionString;
                     con.Open();
-                    SqlCommand comm = new SqlCommand($"SELECT APIPosOrderID, APItax from {TableName } where KioskRefInt = {Convert.ToInt32(request.DOTOrder.RefInt)}", con);
+                    SqlCommand comm = new SqlCommand($"SELECT ID, APIPosOrderID, APItax from {TableName } where KioskRefInt = {Convert.ToInt32(request.DOTOrder.RefInt)}", con);
                     using (SqlDataReader reader = comm.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            orderNum = Convert.ToString(reader.GetInt32(0));
-                            tax = reader.GetInt32(1);
+                            basketId = reader.GetInt32(0);
+                            orderNum = Convert.ToString(reader.GetInt32(1));
+                            tax = reader.GetInt32(2);
                         }
                     }
 
@@ -468,9 +485,13 @@ namespace GenericPOSRestService.RESTListener
                     {
                         Log.Info($"Order number = {orderNum} for Transaction {request.DOTOrder.RefInt}");
                     }
+
+                    //close the basket
+
+                    //Console.WriteLine($"Basket for ID: {basketId} = " + ExecuteOrderBasketClose(con, basketId));
                 }
 
-                response.OrderCreateResponse.Order.OrderPOSNumber = Convert.ToInt32(orderNum);
+                response.OrderCreateResponse.Order.OrderPOSNumber = Convert.ToInt64(orderNum);
                
             }
 
@@ -561,6 +582,26 @@ namespace GenericPOSRestService.RESTListener
                 Console.WriteLine(ex.Message);
 
             }
+        }
+
+        private string ExecuteOrderBasketClose(SqlConnection con, int orderBasketID)
+        {
+            string payload = "-9";
+            // Create and configure a command object
+            SqlCommand com = con.CreateCommand();
+            com.CommandType = CommandType.StoredProcedure;
+            com.CommandText = "OrderBasketClose";
+            com.Parameters.Add("@OrderBasketID", SqlDbType.Int).Value = orderBasketID;
+            using (IDataReader reader = com.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var result = (string)reader[0];
+                    payload = result;
+                }
+            }
+            Log.Info("Execute OrderBasketClose - OrderBasketID = {0}: {1}", orderBasketID, payload);
+            return payload;
         }
     }
 }
